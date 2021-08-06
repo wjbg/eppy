@@ -1,23 +1,35 @@
+"""Eppy example: hairpin coil parallel to plate.
+
+This example illustrates how to use Eppy to calculate the eddy
+currents in a plate due to a hairpin coil parallel to the plate
+surface.
+
+Version: 2021/08/06
+
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-import mf
+import eppy
+from coil_geom import hairpin
 
 # init timer
 start_time = time.perf_counter()
+
 
 # --------------------------------------------------------
 # Plate
 #
 
 # dimensions
-Lx = .3
-Ly = .3
+Lx = .25
+Ly = .25
 t = 1E-3
 
 # cell size and number of cells in x- and y-direction
-dx = dy = .01
+dx = dy = .005
 Nx = int(np.ceil(Lx/dx + 1))
 Ny = int(np.ceil(Ly/dy + 1))
 
@@ -40,10 +52,10 @@ init_time = time.perf_counter()
 print("Initiation: {:.2f} seconds".format(init_time-start_time))
 
 # system matrix
-M = mf.system_matrix(rho, dx, dy, Nx, Ny)
-N = mf.biot_savart_matrix(X, Y, t)
-Cx, Cy = mf.contour_matrices(dx, dy, Nx, Ny, omega)
-Dx, Dy = mf.derivative_matrices(dx, dy, Nx, Ny)
+M = eppy.system_matrix(rho, dx, dy, Nx, Ny)
+N = eppy.biot_savart_matrix(X, Y, t)
+Cx, Cy = eppy.contour_matrices(dx, dy, Nx, Ny, omega)
+Dx, Dy = eppy.derivative_matrices(dx, dy, Nx, Ny)
 K = M + Cx@N@Dy - Cy@N@Dx
 
 # unknown electric vector potential
@@ -51,7 +63,7 @@ T = np.zeros(Nx*Ny, dtype=complex)
 
 
 # boundary condition mask
-mask = mf.mask_bc(Nx, Ny)
+mask = eppy.mask_bc(Nx, Ny)
 
 # time after init
 matrix_time = time.perf_counter()
@@ -63,21 +75,16 @@ print("System matrix: {:.2f} seconds".format(matrix_time-init_time))
 #
 
 #  points
-radius = 25E-3
+length = 80E-3
+width = 20E-3
 height = 10E-3
-points = np.array([[radius, 0, height],
-                   [0, radius, height],
-                   [-radius, 0, height]])
+center = np.array([0.0, 0.0, height])
 
-# generate coil segments
-esize = radius*np.pi*2/40
-R, dl = mf.circle_segments_3p(points[0],
-                              points[1],
-                              points[2],
-                              esize)
+# coil
+R, dl = hairpin(center, length, width)
 
 # magnetic field
-B = mf.biot_savart(dl, R, pos, current)
+B = eppy.biot_savart(dl, R, pos, current)
 Bz = B[:, 2]
 
 # time after coil generation
@@ -90,7 +97,7 @@ print("Magnetic field: {:.2f} seconds".format(coil_time-matrix_time))
 #
 
 # calculate flux
-flux = mf.rhs(Bz, omega, dx, dy)
+flux = eppy.rhs(Bz, omega, dx, dy)
 
 # solve system
 T[mask] = np.linalg.solve(K[:, mask][mask, :], flux[mask])
@@ -114,9 +121,9 @@ print("Problem solved: {:.2f} seconds".format(solve_time-coil_time))
 
 # plot Z-component of coil magnetic field and eddy current distr.
 fig, ax = plt.subplots(nrows=1, ncols=2, squeeze=True, figsize=(12, 6))
-_, cs_b = mf.plot_mf(X, Y, Bz, d='z', levels=10, ax=ax[0])
-_, cs_I = mf.plot_current_density(X, Y, Jx, Jy, d='mag', ax=ax[1])
-_, sp_I = mf.plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1])
+_, cs_b = eppy.plot_mf(X, Y, Bz, d='z', levels=10, ax=ax[0])
+_, cs_I = eppy.plot_current_density(X, Y, Jx, Jy, d='mag', ax=ax[1])
+_, sp_I = eppy.plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1])
 
 # labels
 ax[0].set_title('Z-component of magnetic field (coil)')
@@ -132,10 +139,13 @@ cbar_ax = fig.add_axes([0.85, 0.25, 0.05, 0.5])
 fig.colorbar(cs_I, cax=cbar_ax)
 
 # limits
-ax[0].set_xlim([-.14, .14])
-ax[0].set_ylim([-.14, .14])
-ax[1].set_xlim([-.14, .14])
-ax[1].set_ylim([-.14, .14])
+ax[0].set_xlim([-Lx/2, Lx/2])
+ax[0].set_ylim([-Ly/2, Ly/2])
+ax[1].set_xlim([-Lx/2, Lx/2])
+ax[1].set_ylim([-Ly/2, Ly/2])
+
+# show plot
+plt.show()
 
 # plot time
 plot_time = time.perf_counter()

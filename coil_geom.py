@@ -4,15 +4,190 @@
 
 import numpy as np
 
-# ----------------------------------------------------------------------
-# Coil geometry
-#
+
+def straight_wire(start, end, n=40):
+    """Return position vectors and line segments for straight line.
+
+    Parameters
+    ----------
+    start : ndarray(dtype=float, dim=1)
+        Coordinate of start point (x, y, z).
+    end : ndarray(dtype=float, dim=1)
+        Coordinate of end point (x, y, z).
+    n : int, defaults to 40
+        Number of line segments.
+
+    Returns
+    -------
+    R : ndarray(dtype=float, dim=2)
+        Array of position vectors for each small line segment.
+    dl : ndarray(dtype=float, dim=2)
+        Array of line segment vectors.
+
+    """
+    points = np.array([start, end])
+    line = np.array([0, 1])
+    line = line[None, :]
+    L = np.linalg.norm(end - start)
+    esize = L/n
+    R, dl = coil_segments(points, esize, lines=line)
+    return R, dl
+
+
+def circular_coil(center, radius, plane='XY', n=40):
+    """Return position vectors and line segments for circular coil.
+
+    Parameters
+    ----------
+    center : ndarray(dtype=float, dim=1)
+        Coordinate of the center (x, y, z).
+    radius : float
+        Radius of the circular coil.
+    plane : {'XY', 'YZ'}, defaults to 'XY'
+        Plane in which the circular coil is defined.
+    n : int, defaults to 40
+        Number of line segments.
+
+    Returns
+    -------
+    R : ndarray(dtype=float, dim=2)
+        Array of position vectors for each small line segment.
+    dl : ndarray(dtype=float, dim=2)
+        Array of line segment vectors.
+
+    """
+    P = np.zeros((3, 3))
+    if plane == 'XY':
+        P[0] = center + np.array([radius, 0, 0])
+        P[1] = center + np.array([0, radius, 0])
+        P[2] = center - np.array([radius, 0, 0])
+    elif plane == 'YZ':
+        P[0] = center + np.array([0, radius, 0])
+        P[1] = center + np.array([0, 0, radius])
+        P[2] = center - np.array([0, radius, 0])
+    esize = 2*np.pi*radius/n
+    circle = np.array([0, 1, 2])
+    circle = circle[None, :]
+    R, dl = coil_segments(P, esize, circles=circle)
+    return R, dl
+
+
+def pancake(center, r_in, r_out, turns, n=24):
+    """Return position vectors and line segments for pancake coil.
+
+    Parameters
+    ----------
+    center : ndarray(dtype=float, dim=1)
+        Coordinate of the center (x, y, z).
+    r_in : float
+        Inner radius.
+    r_out : float
+        Outer radius.
+    turns : int
+        Number of windings.
+    n : int, defaults to 24
+        Number of line segments per winding.
+
+    Returns
+    -------
+    R : ndarray(dtype=float, dim=2)
+        Array of position vectors for each small line segment.
+    dl : ndarray(dtype=float, dim=2)
+        Array of line segment vectors.
+
+    """
+    theta = 2*np.pi*turns
+    N = turns*n
+    esize = turns*np.pi*(r_out+r_in)/N
+    R, dl = spiral_segments(center, r_in, r_out, theta, 0.0, esize)
+    return R, dl
+
+
+def helical(center, radius, h, turns, plane='XY', n=40):
+    """Return position vectors and line segments for helical coil.
+
+    Parameters
+    ----------
+    center : ndarray(dtype=float, dim=1)
+        Coordinate of the center (x, y, z).
+    radius : float
+        Coil radius.
+    h : float
+        Coil length.
+    turns : float or int
+        Number of windings.
+    plane : {'XY', 'YZ'}, defaults to 'XY'
+        Plane by which direction (normal) of the coil is defined.
+    n : int, defaults to 40
+        Number of line segments per winding.
+
+    Returns
+    -------
+    R : ndarray(dtype=float, dim=2)
+        Array of position vectors for each small line segment.
+    dl : ndarray(dtype=float, dim=2)
+        Array of line segment vectors.
+
+    """
+    theta = 2*np.pi*turns
+    N = turns*n
+    esize = turns*np.pi*radius/N
+    R, dl = spiral_segments(center, radius, radius, theta, h, esize)
+    if plane == 'YZ':
+        normal = np.array([1.0, 0.0, 0.0])
+        R, dl = tilt_and_rotate_coil(R, dl, center, normal, 0.0)
+    return R, dl
+
+
+def hairpin(center, length, width, plane='XY', n=40):
+    """Return position vectors and line segments for hairpin coil.
+
+    Parameters
+    ----------
+    center : ndarray(dtype=float, dim=1)
+        Coordinate of the center (x, y, z).
+    length : float
+        Length of coil.
+    width : float
+        Length of coil.
+    plane : {'XY', 'YZ'}, defaults to 'XY'
+        Plane in which the circular coil is defined.
+    n : int, defaults to 40
+        Number of line segments.
+
+    Returns
+    -------
+    R : ndarray(dtype=float, dim=2)
+        Array of position vectors for each small line segment.
+    dl : ndarray(dtype=float, dim=2)
+        Array of line segment vectors.
+
+    """
+    P = np.zeros((6, 3))
+    if plane == 'XY':
+        P[0] = center + np.array([-length/2, width/2, 0])
+        P[1] = center + np.array([length/2, width/2, 0])
+        P[2] = center + np.array([length/2 + width/2, 0, 0])
+        P[3] = center + np.array([length/2, -width/2, 0])
+        P[4] = center + np.array([-length/2, -width/2, 0])
+        P[5] = center + np.array([-length/2 - width/2, 0, 0])
+    elif plane == 'YZ':
+        P[0] = center + np.array([0, -length/2, width/2])
+        P[1] = center + np.array([0, length/2, width/2])
+        P[2] = center + np.array([0, length/2 + width/2, 0])
+        P[3] = center + np.array([0, length/2, -width/2])
+        P[4] = center + np.array([0, -length/2, -width/2])
+        P[5] = center + np.array([0, -length/2 - width/2,  0])
+    lines = np.array([[0, 1], [3, 4]])
+    arcs = np.array([[1, 2, 3],
+                     [4, 5, 0]])
+    L = length*2 + np.pi*(width/2)**2
+    esize = L/n
+    R, dl = coil_segments(P, esize, lines=lines, arcs=arcs)
+    return R, dl
 
 def coil_segments(points, esize, **kwargs):
     """Return position vectors and line segments for a coil.
-
-    ~~~The coil is generated based on lines between coordinate points,
-    and a connectivity matrix.
 
     Parameters
     ----------
@@ -28,12 +203,18 @@ def coil_segments(points, esize, **kwargs):
     **lines : ndarray(dtype=float, dim=2), optional
         Connectivity matrix (N, 2) with the start and end point of a
         line on each row.
+    **circles : ndarray(dtype=float, dim=2), optional
+        Array with N circle definitions (N, 3). Each circle is defined
+        by three points on its radius, with the current in the
+        direction from P1 to P2. The first element of i^th arc [i, 0]
+        corresponds to P1, the second element to P2 and the third
+        element to P3 of that particular arc.
     **arcs : ndarray(dtype=float, dim=2), optional
-        Arc definition matrix (N, 3). The arc is defined by three
-        points on its radius, and the current running from P1 via P2
-        to P3. The first element [i, 0] corresponds to P1, the second
-        element to P2 and the third element to P3 of that particular
-        arc.
+        Array with N arc definitions (N, 3). Each arc is defined by
+        three points on its radius, with the current running from P1
+        via P2 to P3. The first element of i^th arc [i, 0] corresponds
+        to P1, the second element to P2 and the third element to P3 of
+        that particular arc.
 
     Returns
     -------
@@ -51,11 +232,18 @@ def coil_segments(points, esize, **kwargs):
             dR, ddl = line_segments(points[line[0]], points[line[1]], esize)
             R = np.vstack((R, dR))
             dl = np.vstack((dl, ddl))
+    if 'circles' in kwargs:
+        circles = kwargs.get("circles")
+        for circle in circles:
+            dR, ddl = circle_segments_3p(points[circle[0]], points[circle[1]],
+                                         points[circle[2]], esize)
+            R = np.vstack((R, dR))
+            dl = np.vstack((dl, ddl))
     if 'arcs' in kwargs:
         arcs = kwargs.get("arcs")
         for arc in arcs:
             dR, ddl = circle_segments_3p(points[arc[0]], points[arc[1]],
-                                         points[arc[2]], esize)
+                                         points[arc[2]], esize, is_arc=True)
             R = np.vstack((R, dR))
             dl = np.vstack((dl, ddl))
     return R, dl
@@ -287,8 +475,34 @@ def rotation_direction_and_angle(v1, v2, v3, eps=1E-10):
     return normal, phi, theta
 
 
-def tilt_and_rotate_coil():
-    pass
+def tilt_and_rotate_coil(R, dl, origin, new_z, theta):
+    """Rotate coil around a given point.
+
+    Parameters
+    ----------
+    R : ndarray(dtype=float, dim=2)
+        Position vectors.
+    dl : ndarray(dtype=float, dim=2)
+        Length segments.
+    origin : ndarray(dtype=float, dim=1)
+        Point around which to rotate.
+    new_z : ndarray(dtype=float, dim=1)
+        Direction of new_z axis in terms of old CS.
+    theta : float
+        Rotation angle around new z-axis.
+
+    Returns
+    -------
+    R_new : ndarray(dtype=float, dim=2)
+        New position vector.
+    dl_new : ndarray(dtype=float, dim=2)
+        New length segments.
+
+    """
+    R_new = tilt_and_rotate(R, origin, new_z, theta)
+    O = np.array([0.0, 0.0, 0.0])
+    dl_new = tilt_and_rotate(dl, O, new_z, theta)
+    return R_new, dl_new
 
 
 def tilt_and_rotate(points, origin, new_z, theta, eps=1E-10):
