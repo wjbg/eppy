@@ -1,5 +1,4 @@
 """
-
 """
 
 import numpy as np
@@ -126,7 +125,7 @@ def plot_mf(x, y, B, d='z', levels=10, ax=None):
         d = {"x": 0, "y": 1, "z": 2}[d]
         B = np.linalg.norm(B, axis=1) if d == "norm" else B[:, d]
     if ax is None:
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
     cs = ax.contourf(x, y, vector2matrix(B, Ny, Nx), levels=levels)
     ax.set_aspect('equal', adjustable='box')
     return ax, cs
@@ -434,7 +433,7 @@ def plot_current_density_cf(x, y, Jx, Jy, d='mag', ax=None):
     Nx, Ny = len(x), len(y)
     xc, yc = current_coordinates(x, y)
     if ax is None:
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
     if d == 'mag':
         J_mag = np.sqrt(Jx.real**2 + Jy.real**2)
         cs = ax.contourf(xc, yc, vector2matrix(J_mag, Nx-1, Ny-1), levels=10)
@@ -442,6 +441,8 @@ def plot_current_density_cf(x, y, Jx, Jy, d='mag', ax=None):
         cs = ax.contourf(xc, yc, vector2matrix(Jx.real, Nx-1, Ny-1), levels=10)
     elif d == 'y':
         cs = ax.contourf(xc, yc, vector2matrix(Jy.real, Nx-1, Ny-1), levels=10)
+    else:
+        cs = None
     ax.set_aspect('equal', adjustable='box')
     return ax, cs
 
@@ -478,7 +479,7 @@ def plot_current_density(x, y, Jx, Jy, d='mag', ax=None):
     Nx, Ny = len(x), len(y)
     X, Y = np.meshgrid(x, y)
     if ax is None:
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
     if d == 'mag':
         J_mag = np.sqrt(Jx.real**2 + Jy.real**2)
         mg = ax.pcolormesh(X, Y, vector2matrix(J_mag, Nx-1, Ny-1))
@@ -486,6 +487,8 @@ def plot_current_density(x, y, Jx, Jy, d='mag', ax=None):
         mg = ax.pcolormesh(X, Y, vector2matrix(Jx.real, Nx-1, Ny-1))
     elif d == 'y':
         mg = ax.pcolormesh(X, Y, vector2matrix(Jy.real, Nx-1, Ny-1))
+    else:
+        mg = None
     ax.set_aspect('equal', adjustable='box')
     return ax, mg
 
@@ -519,7 +522,7 @@ def plot_current_streamlines(X, Y, Jx, Jy, ax=None):
     Nx, Ny = len(X), len(Y)
     xc, yc = current_coordinates(X, Y)
     if ax is None:
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
     sp = ax.streamplot(xc, yc,
                        vector2matrix(Jx.real, Nx-1, Ny-1),
                        vector2matrix(Jy.real, Nx-1, Ny-1),
@@ -619,9 +622,11 @@ def volume_int_I(dx, dy, t):
     """
     def f(x, y, z):
         return 1/np.sqrt(x**2 + y**2 + z**2)
-    I, err = nquad(f, [[0, dx/2],
-                       [0, dy/2],
-                       [0, t/2]])
+    res = nquad(f, [[0, dx/2],
+                    [0, dy/2],
+                    [0, t/2]])
+    I = res[0]
+    err = res[1]
     return 8*I, err
 
 

@@ -1,18 +1,21 @@
-"""Eppy example: pancake coil parallel to plate.
+"""Eppy example: circular coil oriented perpedicular to plate.
 
 This example illustrates how to use Eppy to calculate the eddy
-currents in a plate due to a pancake coil.
+currents in a plate due to a circular coil, which oriented
+perpendicular to the flat plate.
 
-Version: 2021/08/06
+Version: 2021/08/10
 
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import sys
+sys.path.append('..')
 
 import eppy
-from coil_geom import pancake
+from coil_geom import circular_coil
 
 # init timer
 start_time = time.perf_counter()
@@ -74,14 +77,12 @@ print("System matrix: {:.2f} seconds".format(matrix_time-init_time))
 #
 
 #  points
-r_in = 20E-3
-r_out = 40E-3
-turns = 5
-height = 10E-3
+radius = 25E-3
+height = 10E-3 + radius
 center = np.array([0.0, 0.0, height])
 
 # coil
-R, dl = pancake(center, r_in, r_out, turns)
+R, dl = circular_coil(center, radius, plane='YZ')
 
 # magnetic field
 B = eppy.biot_savart(dl, R, pos, current)

@@ -4,13 +4,15 @@ This example illustrates how to use Eppy to calculate the eddy
 currents in a plate due to a hairpin coil parallel to the plate
 surface.
 
-Version: 2021/08/06
+Version: 2021/08/10
 
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import sys
+sys.path.append('..')
 
 import eppy
 from coil_geom import hairpin

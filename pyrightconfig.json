@@ -1,0 +1,9 @@
+{
+    "exclude": ["**/__pycache__"],
+    "ignore": ["**/__pycache__"],
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "typeCheckingMode": "basic",
+    "venvPath": "c:/Users/grouvewjb/Documents/Work/research/iw/eppy",
+    "venv": "venv"
+}

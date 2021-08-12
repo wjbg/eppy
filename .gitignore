@@ -1,0 +1,6 @@
+# Emacs backup files
+*~
+
+# Emacs and Python folders
+__pycache__
+venv
