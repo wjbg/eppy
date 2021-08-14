@@ -1,6 +1,7 @@
 """
 """
 
+from coil_geom import coil_segments
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse import diags
@@ -705,3 +706,153 @@ def phase_shift(J, phi):
     theta = np.angle(J) + phi
     Js = np.array([cmath.rect(r[i], theta[i]) for i in range(len(r))])
     return Js
+
+
+# ----------------------------------------------------------------------
+# Input file parser
+#
+
+def parse_line(s):
+    s = s.split(";", 1)[0].split(",")
+    if bool(s[0].split()):
+        command = s[0].split()[0]
+        args = [arg.split()[0] for arg in s[1:]]
+    else:
+        command = 'pass'
+        args = []
+    return command, args
+
+
+def parse_file(fn):
+    points = []
+    lines = []
+    arcs = []
+    circles = []
+    freq = amplitude = esize = 0.0
+    Lx = Ly = thickness = dx = dy = cond = 0.0
+
+    with open(fn) as f:
+        lns = f.readlines()
+        for ln in lns:
+            print(ln)
+            command, args = parse_line(ln)
+            if command == 'p':
+                points.append(args)
+            elif command == 'line':
+                lines.append(args)
+            elif command == 'arc':
+                arcs.append(args)
+            elif command == 'circle':
+                circles.append(args)
+            elif command == 'esize':
+                esize = float(args[0])
+            elif command == 'freq':
+                freq = float(args[0])
+            elif command == 'amplitude':
+                amplitude = float(args[0])
+            elif command == 'lenx':
+                Lx = float(args[0])
+            elif command == 'leny':
+                Ly = float(args[0])
+            elif command == 'thickness':
+                thickness = float(args[0])
+            elif command == 'dx':
+                dx = float(args[0])
+            elif command == 'dy':
+                dy = float(args[0])
+            elif command == 'cond':
+                cond = float(args[0])
+
+    coil = {"freq": freq,
+            "amplitude": amplitude,
+            "points": np.array(points, dtype=float),
+            "lines": np.array(lines, dtype=int),
+            "circles": np.array(circles, dtype=int),
+            "arcs": np.array(arcs, dtype=int),
+            "esize": esize}
+    plate = {"Lx": Lx, "Ly": Ly,
+             "dx": dx, "dy": dy,
+             "thickness": thickness, "cond": cond}
+    return coil, plate
+
+
+def run_input_file(fn):
+    coil, plate = parse_file(fn)
+
+    Lx = plate["Lx"]
+    Ly = plate["Ly"]
+    t = plate["thickness"]
+    dx = plate["dx"]
+    dy = plate["dy"]
+
+    # position vector for points on XY plane
+    Nx = int(np.ceil(Lx/dx + 1))
+    Ny = int(np.ceil(Ly/dy + 1))
+    X = np.linspace(-Lx/2, Lx/2, Nx)
+    Y = np.linspace(-Ly/2, Ly/2, Ny)
+    pos = np.array([np.array([x, y, 0]) for y in Y for x in X])
+
+    # conductivity and resistivity
+    rho = 1/plate["cond"]
+
+    # coil excitation frequency and current
+    omega = 2*np.pi*coil["freq"]
+    current = coil["amplitude"]
+
+    M = system_matrix(rho, dx, dy, Nx, Ny)
+    N = biot_savart_matrix(X, Y, t)
+    Cx, Cy = contour_matrices(dx, dy, Nx, Ny, omega)
+    Dx, Dy = derivative_matrices(dx, dy, Nx, Ny)
+    K = M + Cx@N@Dy - Cy@N@Dx
+
+    # unknown electric vector potential
+    T = np.zeros(Nx*Ny, dtype=complex)
+
+    # boundary condition mask
+    mask = mask_bc(Nx, Ny)
+
+    R, dl = coil_segments(coil["points"], coil["esize"],
+                          lines=coil["lines"],
+                          circles=coil["circles"],
+                          arcs=coil["arcs"])
+
+    # magnetic field
+    B = biot_savart(dl, R, pos, current)
+    Bz = B[:, 2]
+
+    flux = rhs(Bz, omega, dx, dy)
+
+    # solve system
+    T[mask] = np.linalg.solve(K[:, mask][mask, :], flux[mask])
+
+    # calculate currents
+    Jx = np.dot(Dy, T)
+    Jy = -np.dot(Dx, T)
+
+    # plot Z-component of coil magnetic field and eddy current distr.
+    fig, ax = plt.subplots(nrows=1, ncols=2, squeeze=True, figsize=(12, 6))
+    _, cs_b = plot_mf(X, Y, Bz, d='z', levels=10, ax=ax[0])
+    _, cs_I = plot_current_density(X, Y, Jx, Jy, d='mag', ax=ax[1])
+    _, sp_I = plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1])
+
+    # labels
+    ax[0].set_title('Z-component of magnetic field (coil)')
+    ax[0].set_xlabel('x [m]')
+    ax[0].set_ylabel('y [m]')
+    ax[1].set_title('Eddy current distribution [A/m^2]')
+    ax[1].set_xlabel('x [m]')
+    ax[1].set_ylabel('y [m]')
+
+    # add color bar
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.25, 0.05, 0.5])
+    fig.colorbar(cs_I, cax=cbar_ax)
+
+    # limits
+    ax[0].set_xlim([-Lx/2, Lx/2])
+    ax[0].set_ylim([-Ly/2, Ly/2])
+    ax[1].set_xlim([-Lx/2, Lx/2])
+    ax[1].set_ylim([-Ly/2, Ly/2])
+
+    # show plot
+    plt.show()

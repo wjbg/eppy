@@ -1,0 +1,87 @@
+; Example input file for a meander coil.
+;
+; The present file showcases the different keywords that can
+; be used in an input file for the eppy module.
+
+
+; Comments are preceded by a semicolon
+
+; --------------------------------------------
+; Coil information
+;
+
+freq, 250E3	; frequency in Hz
+amplitude, 100	; current amplitude in Ampere
+
+; The coil geometry is defined through points, lines, arc
+; segments and circles.
+
+; Points
+;
+; A point is defined by using the keyword 'p' followed by the
+; coordinates (x, y, z), as is shown below. The points are
+; numbered consecutively starting from 0 (zero).
+;
+p, -0.05,  0.015,  0.01	  ; 0th point
+p, 0.045,  0.015,  0.01   ; 1st point
+p, 0.05,   0.01,   0.01   ; 2nd point
+p, 0.045,  0.005,  0.01   ; 3rd point
+p, -0.045, 0.005,  0.01   ; 4
+p, -0.05,  0.0,    0.01   ; 5
+p, -0.045, -0.005, 0.01   ; 6
+p, 0.045,  -0.005, 0.01   ; 7
+p, 0.05,   -0.01,  0.01   ; 8
+p, 0.045,  -0.015, 0.01   ; 9
+p, -0.05,  -0.015, 0.01   ; 10th point
+
+; Lines
+;
+; A line is defined by the keyword 'line' followed by the
+; end points, which are provided by their number. The current
+; is defined to run from the first point to the second.
+;
+line, 0, 1
+line, 3, 4
+line, 6, 7
+line, 9, 10
+
+; Arc segments
+;
+; An arc segments is defined by the keyword 'arc' followed by
+; three points. The current runs from the first point via the
+; second to the third point. You can use the keyword 'circle'
+; in case you would like a full circle instead of an arc
+; segment.
+;
+arc, 1, 2, 3
+arc, 4, 5, 6
+arc, 7, 8, 9
+
+; Circles
+;
+; A circle is defined by the keyword 'circle' followed by
+; three points. The circle is defined to cross the three
+; provided points with the current running from the first
+; point in the direction to the second point.
+;
+; circle, p1, p2, p3	; there are no circles in this coil
+
+; Element size
+;
+; Desired size of coil elements used to calculate the magnetic
+; field.
+esize, 0.002
+
+
+; --------------------------------------------
+; Plate information
+;
+
+lenx, 0.15	  ; length in x-direction in m
+leny, 0.15	  ; length in y-direction in m
+thickness, 0.001  ; plate thickness in m
+
+dx, 0.003        ; cell length in x-dir in m
+dy, 0.003	  ; cell length in y-dir in m
+
+cond, 20E5 	  ; plate conductivity in S/m
