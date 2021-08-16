@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.sparse import diags
 from scipy.integrate import nquad
 import cmath
-
+import os
 
 # ----------------------------------------------------------------------
 # Magnetic field
@@ -712,11 +712,12 @@ def phase_shift(J, phi):
 # Input file parser
 #
 
-def parse_line(s):
-    s = s.split(";", 1)[0].split(",")
-    if bool(s[0].split()):
-        command = s[0].split()[0]
-        args = [arg.split()[0] for arg in s[1:]]
+def parse_line(ln):
+    """Return command and arguments from line from input file."""
+    ln = ln.split(";", 1)[0].split(",")
+    if bool(ln[0].split()):
+        command = ln[0].split()[0]
+        args = [arg.split()[0] for arg in ln[1:]]
     else:
         command = 'pass'
         args = []
@@ -724,6 +725,23 @@ def parse_line(s):
 
 
 def parse_file(fn):
+    """Return coil and plate dictionary from input file.
+
+    Parameters
+    ----------
+    fn : string
+        Path to file.
+
+    Returns
+    -------
+    coil : dict
+        Dictionary with coil information. Has the following keys:
+        freq, amplitiude, points, lines, circles, arcs, esize.
+    plate : dict
+        Dictionary with plate information. Has the following keys: Lx,
+        Ly, dx, dy, thickness, cond.
+
+    """
     points = []
     lines = []
     arcs = []
@@ -734,7 +752,6 @@ def parse_file(fn):
     with open(fn) as f:
         lns = f.readlines()
         for ln in lns:
-            print(ln)
             command, args = parse_line(ln)
             if command == 'p':
                 points.append(args)
@@ -777,13 +794,24 @@ def parse_file(fn):
 
 
 def run_input_file(fn):
-    coil, plate = parse_file(fn)
+    """Run simulation based on input file.
 
-    Lx = plate["Lx"]
-    Ly = plate["Ly"]
+    Parameters
+    ----------
+    fn : string
+        Path to file.
+
+    """
+    print("Welcome to eppy's eddy current calculator.")
+    print("------------------------------------------")
+
+    coil, plate = parse_file(fn)
+    print("Input file loaded.")
+
+    # plate dimensions and cell size
+    Lx, Ly = plate["Lx"], plate["Ly"]
+    dx, dy = plate["dx"], plate["dy"]
     t = plate["thickness"]
-    dx = plate["dx"]
-    dy = plate["dy"]
 
     # position vector for points on XY plane
     Nx = int(np.ceil(Lx/dx + 1))
@@ -792,25 +820,25 @@ def run_input_file(fn):
     Y = np.linspace(-Ly/2, Ly/2, Ny)
     pos = np.array([np.array([x, y, 0]) for y in Y for x in X])
 
-    # conductivity and resistivity
+    # resistivity
     rho = 1/plate["cond"]
 
     # coil excitation frequency and current
     omega = 2*np.pi*coil["freq"]
     current = coil["amplitude"]
 
+    # system matrix
     M = system_matrix(rho, dx, dy, Nx, Ny)
     N = biot_savart_matrix(X, Y, t)
     Cx, Cy = contour_matrices(dx, dy, Nx, Ny, omega)
     Dx, Dy = derivative_matrices(dx, dy, Nx, Ny)
     K = M + Cx@N@Dy - Cy@N@Dx
 
-    # unknown electric vector potential
+    # unknown electric vector potential and mask
     T = np.zeros(Nx*Ny, dtype=complex)
+    print("System matrices generated.")
 
-    # boundary condition mask
-    mask = mask_bc(Nx, Ny)
-
+    # coil
     R, dl = coil_segments(coil["points"], coil["esize"],
                           lines=coil["lines"],
                           circles=coil["circles"],
@@ -819,21 +847,23 @@ def run_input_file(fn):
     # magnetic field
     B = biot_savart(dl, R, pos, current)
     Bz = B[:, 2]
-
     flux = rhs(Bz, omega, dx, dy)
+    print("Magnetic field and flux calculated.")
 
     # solve system
+    mask = mask_bc(Nx, Ny)
     T[mask] = np.linalg.solve(K[:, mask][mask, :], flux[mask])
 
     # calculate currents
     Jx = np.dot(Dy, T)
     Jy = -np.dot(Dx, T)
+    print("Currents calculated.")
 
     # plot Z-component of coil magnetic field and eddy current distr.
     fig, ax = plt.subplots(nrows=1, ncols=2, squeeze=True, figsize=(12, 6))
-    _, cs_b = plot_mf(X, Y, Bz, d='z', levels=10, ax=ax[0])
+    _, _ = plot_mf(X, Y, Bz, d='z', levels=10, ax=ax[0])
     _, cs_I = plot_current_density(X, Y, Jx, Jy, d='mag', ax=ax[1])
-    _, sp_I = plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1])
+    _, _ = plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1])
 
     # labels
     ax[0].set_title('Z-component of magnetic field (coil)')
@@ -855,4 +885,7 @@ def run_input_file(fn):
     ax[1].set_ylim([-Ly/2, Ly/2])
 
     # show plot
+    fig_fn = os.path.splitext(fn)[0] + ".png"
+    plt.savefig(fig_fn, dpi=300)
     plt.show()
+    print("All done! Figure is saved as '{}'.".format(fig_fn))
