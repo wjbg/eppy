@@ -8,6 +8,8 @@ from scipy.sparse import diags
 from scipy.integrate import nquad
 import cmath
 import os
+import sys
+
 
 # ----------------------------------------------------------------------
 # Magnetic field
@@ -889,3 +891,8 @@ def run_input_file(fn):
     plt.savefig(fig_fn, dpi=300)
     plt.show()
     print("All done! Figure is saved as '{}'.".format(fig_fn))
+
+
+if __name__ == "__main__":
+    fn = sys.argv[1]
+    run_input_file(fn)
