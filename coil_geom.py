@@ -1,4 +1,8 @@
-"""
+"""Generate coil geometries.
+
+This module provides functions to generate various coil geometries
+that can be used in conjuction with the eppy module to calculate eddy
+currents in flat plates.
 
 """
 
@@ -445,6 +449,7 @@ def rotation_direction_and_angle(v1, v2, v3, eps=1E-10):
         Angle between first and third vector in direction of rotation.
 
     """
+    normal = None
     phi = np.arccos(np.dot(v1, v2))
     theta = np.arccos(np.dot(v1, v3))
     if (phi < eps) or (theta < eps):
