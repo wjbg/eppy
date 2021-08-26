@@ -163,7 +163,7 @@ example (as is done here) the finite difference method. The in-plane
 eddy currents can then be calculated as:
 
 <p align="center">
-<img src="https://latex.codecogs.com/svg.latex?\mathbf{J}=\frac{\partial{T}}{\partial y}\mathbf{\bar{x}}-\frac{\partial{T}}{\partial x}\mathbf{\bar{y}}."/>
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{J}=\frac{\partial{T}}{\partial{y}}\mathbf{\bar{x}}-\frac{\partial{T}}{\partial{x}}\mathbf{\bar{y}}."/>
 </p>
 
 
