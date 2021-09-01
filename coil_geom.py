@@ -7,9 +7,17 @@ currents in flat plates.
 """
 
 import numpy as np
+import numpy.typing as npt
 
 
-def straight_wire(start, end, n=40):
+# ----------------------------------------------------------------------
+# User defined types
+#
+ArrayFloat = npt.NDArray[np.float_]
+
+
+def straight_wire(start: ArrayFloat, end: ArrayFloat,
+                  n: int=40) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for straight line.
 
     Parameters
@@ -38,7 +46,8 @@ def straight_wire(start, end, n=40):
     return R, dl
 
 
-def circular_coil(center, radius, plane='XY', n=40):
+def circular_coil(center: ArrayFloat, radius: float, plane: str="XY",
+                  n: int=40) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for circular coil.
 
     Parameters
@@ -61,11 +70,11 @@ def circular_coil(center, radius, plane='XY', n=40):
 
     """
     P = np.zeros((3, 3))
-    if plane == 'XY':
+    if plane == "XY":
         P[0] = center + np.array([radius, 0, 0])
         P[1] = center + np.array([0, radius, 0])
         P[2] = center - np.array([radius, 0, 0])
-    elif plane == 'YZ':
+    elif plane == "YZ":
         P[0] = center + np.array([0, radius, 0])
         P[1] = center + np.array([0, 0, radius])
         P[2] = center - np.array([0, radius, 0])
@@ -76,7 +85,8 @@ def circular_coil(center, radius, plane='XY', n=40):
     return R, dl
 
 
-def pancake(center, r_in, r_out, turns, n=24):
+def pancake(center: ArrayFloat, r_in: float, r_out: float,
+            turns: int, n: int=24) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for pancake coil.
 
     Parameters
@@ -107,7 +117,8 @@ def pancake(center, r_in, r_out, turns, n=24):
     return R, dl
 
 
-def helical(center, radius, h, turns, plane='XY', n=40):
+def helical(center: ArrayFloat, radius: float, h: float, turns:int,
+            plane: str="XY", n: int=40) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for helical coil.
 
     Parameters
@@ -137,13 +148,14 @@ def helical(center, radius, h, turns, plane='XY', n=40):
     N = turns*n
     esize = turns*np.pi*radius/N
     R, dl = spiral_segments(center, radius, radius, theta, h, esize)
-    if plane == 'YZ':
+    if plane == "YZ":
         normal = np.array([1.0, 0.0, 0.0])
         R, dl = tilt_and_rotate_coil(R, dl, center, normal, 0.0)
     return R, dl
 
 
-def hairpin(center, length, width, plane='XY', n=40):
+def hairpin(center: ArrayFloat, length: float, width: float,
+            plane: str="XY", n: int=40) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for hairpin coil.
 
     Parameters
@@ -168,14 +180,14 @@ def hairpin(center, length, width, plane='XY', n=40):
 
     """
     P = np.zeros((6, 3))
-    if plane == 'XY':
+    if plane == "XY":
         P[0] = center + np.array([-length/2, width/2, 0])
         P[1] = center + np.array([length/2, width/2, 0])
         P[2] = center + np.array([length/2 + width/2, 0, 0])
         P[3] = center + np.array([length/2, -width/2, 0])
         P[4] = center + np.array([-length/2, -width/2, 0])
         P[5] = center + np.array([-length/2 - width/2, 0, 0])
-    elif plane == 'YZ':
+    elif plane == "YZ":
         P[0] = center + np.array([0, -length/2, width/2])
         P[1] = center + np.array([0, length/2, width/2])
         P[2] = center + np.array([0, length/2 + width/2, 0])
@@ -190,7 +202,8 @@ def hairpin(center, length, width, plane='XY', n=40):
     R, dl = coil_segments(P, esize, lines=lines, arcs=arcs)
     return R, dl
 
-def coil_segments(points, esize, **kwargs):
+def coil_segments(points: ArrayFloat, esize: float,
+                  **kw: npt.NDArray[np.int_]) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for a coil.
 
     Parameters
@@ -199,7 +212,7 @@ def coil_segments(points, esize, **kwargs):
         List of coordinates (x, y, z).
     esize : float
         Desired element length.
-    **kwargs : keyword arguments
+    **kw : keyword arguments
         See below.
 
     Keyword arguments
@@ -230,21 +243,22 @@ def coil_segments(points, esize, **kwargs):
     """
     R = np.empty((0, 3), float)
     dl = np.empty((0, 3), float)
-    if 'lines' in kwargs:
-        lines = kwargs.get("lines")
+
+    lines = kw.get("lines") if 'lines' in kw else None
+    if lines != None:
         for line in lines:
             dR, ddl = line_segments(points[line[0]], points[line[1]], esize)
             R = np.vstack((R, dR))
             dl = np.vstack((dl, ddl))
-    if 'circles' in kwargs:
-        circles = kwargs.get("circles")
+    circles = kw.get("circles") if 'circles' in kw else None
+    if circles != None:
         for circle in circles:
             dR, ddl = circle_segments_3p(points[circle[0]], points[circle[1]],
                                          points[circle[2]], esize)
             R = np.vstack((R, dR))
             dl = np.vstack((dl, ddl))
-    if 'arcs' in kwargs:
-        arcs = kwargs.get("arcs")
+    arcs = kw.get("arcs") if 'arcs' in kw else None
+    if arcs != None:
         for arc in arcs:
             dR, ddl = circle_segments_3p(points[arc[0]], points[arc[1]],
                                          points[arc[2]], esize, is_arc=True)
@@ -253,7 +267,8 @@ def coil_segments(points, esize, **kwargs):
     return R, dl
 
 
-def line_segments(p1, p2, esize):
+def line_segments(p1: ArrayFloat, p2: ArrayFloat,
+                  esize: float) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for straight line.
 
     Parameters
@@ -282,7 +297,9 @@ def line_segments(p1, p2, esize):
     return R, dl
 
 
-def circle_segments_3p(p1, p2, p3, esize, is_arc=False):
+def circle_segments_3p(p1: ArrayFloat, p2: ArrayFloat, p3: ArrayFloat,
+                       esize: float,
+                       is_arc: bool=False) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for an arc.
 
     The arc or circle is defined three points in three dimensions. The
@@ -327,7 +344,9 @@ def circle_segments_3p(p1, p2, p3, esize, is_arc=False):
     return R, dl
 
 
-def spiral_segments(center, R_in, R_out, theta, h, esize):
+def spiral_segments(center: ArrayFloat, R_in: float, R_out: float,
+                    theta: float, h: float,
+                    esize: float) -> tuple[ArrayFloat, ArrayFloat]:
     """Return position vectors and line segments for a spiral.
 
     The spiral is oriented to turn around the normal of the XY-plane.
@@ -375,7 +394,8 @@ def spiral_segments(center, R_in, R_out, theta, h, esize):
     return R, dL
 
 
-def circle_radius_center_3p(p1, p2, p3):
+def circle_radius_center_3p(p1: ArrayFloat, p2: ArrayFloat,
+                            p3: ArrayFloat) -> tuple[ArrayFloat, float]:
     """Return radius and center of a circle that fits through three points.
 
     Parameters
@@ -418,7 +438,8 @@ def circle_radius_center_3p(p1, p2, p3):
     return P, R
 
 
-def rotation_direction_and_angle(v1, v2, v3, eps=1E-10):
+def rotation_direction_and_angle(v1: ArrayFloat, v2: ArrayFloat,
+        v3: ArrayFloat, eps: float=1E-10) -> tuple[ArrayFloat, float, float]:
     """Return outward normal and angles for an arc.
 
     The direction of the current in a cricle or arc segment is defined
@@ -449,7 +470,7 @@ def rotation_direction_and_angle(v1, v2, v3, eps=1E-10):
         Angle between first and third vector in direction of rotation.
 
     """
-    normal = None
+    normal = np.array([0.0, 0.0, 0.0])
     phi = np.arccos(np.dot(v1, v2))
     theta = np.arccos(np.dot(v1, v3))
     if (phi < eps) or (theta < eps):
@@ -480,7 +501,9 @@ def rotation_direction_and_angle(v1, v2, v3, eps=1E-10):
     return normal, phi, theta
 
 
-def tilt_and_rotate_coil(R, dl, origin, new_z, theta):
+def tilt_and_rotate_coil(R: ArrayFloat, dl: ArrayFloat,
+                         origin: ArrayFloat, new_z:ArrayFloat,
+                         theta: float) -> tuple[ArrayFloat, ArrayFloat]:
     """Rotate coil around a given point.
 
     Parameters
@@ -510,7 +533,8 @@ def tilt_and_rotate_coil(R, dl, origin, new_z, theta):
     return R_new, dl_new
 
 
-def tilt_and_rotate(points, origin, new_z, theta, eps=1E-10):
+def tilt_and_rotate(points: ArrayFloat, origin: ArrayFloat, new_z: ArrayFloat,
+                    theta: float, eps: float=1E-10) -> ArrayFloat:
     """Rotate points around a given origin.
 
     Parameters
@@ -556,7 +580,7 @@ def tilt_and_rotate(points, origin, new_z, theta, eps=1E-10):
     return R + origin
 
 
-def rotation_matrix_3d(axis, theta):
+def rotation_matrix_3d(axis: ArrayFloat, theta: float) -> ArrayFloat:
     """Return rotation matrix to rotate a vector in three dimensions.
 
     Makes use of the Euler-Rodrigues formula.
