@@ -163,8 +163,8 @@ def plot_data(T, flux, theta=0):
     Jx = np.dot(Dy, T_shifted)
     Jy = -np.dot(Dx, T_shifted)
     J_mag = np.sqrt(Jx.real**2 + Jy.real**2)
-    flux_eddy = np.dot(Cx@N@Dy - Cy@N@Dx, T_shifted)
-    B_total = (flux_shifted.real + flux_eddy.real)/omega/dx/dy
+    flux_eddy = np.dot(Cx@N@Dy - Cy@N@Dx, T_shifted) # magnetic flux due to eddy currents
+    B_total = (np.real(flux_shifted) + np.real(flux_eddy))/omega/dx/dy
 
     # generate figure
     plt.figure(figsize=(8, 3))

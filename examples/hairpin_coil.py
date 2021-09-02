@@ -1,10 +1,8 @@
 """Eppy example: hairpin coil parallel to plate.
 
-This example illustrates how to use Eppy to calculate the eddy
+This example illustrates how to use eppy to calculate the eddy
 currents in a plate due to a hairpin coil parallel to the plate
 surface.
-
-Version: 2021/08/10
 
 """
 
@@ -62,7 +60,6 @@ K = M + Cx@N@Dy - Cy@N@Dx
 
 # unknown electric vector potential
 T = np.zeros(Nx*Ny, dtype=complex)
-
 
 # boundary condition mask
 mask = eppy.mask_bc(Nx, Ny)
@@ -123,17 +120,17 @@ print("Problem solved: {:.2f} seconds".format(solve_time-coil_time))
 
 # plot Z-component of coil magnetic field and eddy current distr.
 fig, ax = plt.subplots(nrows=1, ncols=2, squeeze=True, figsize=(12, 6))
-_, cs_b = eppy.plot_mf(X, Y, Bz, d='z', levels=10, ax=ax[0])
-_, cs_I = eppy.plot_current_density(X, Y, Jx, Jy, d='mag', ax=ax[1])
-_, sp_I = eppy.plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1])
+_, _ = eppy.plot_mf(X, Y, Bz, label="z", levels=10, ax=ax[0]) # type: ignore
+_, cs_I = eppy.plot_current_density(X, Y, Jx, Jy, label="mag", ax=ax[1]) # type: ignore
+_, _ = eppy.plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1]) # type: ignore
 
 # labels
-ax[0].set_title('Z-component of magnetic field (coil)')
-ax[0].set_xlabel('x [m]')
-ax[0].set_ylabel('y [m]')
-ax[1].set_title('Eddy current distribution [A/m^2]')
-ax[1].set_xlabel('x [m]')
-ax[1].set_ylabel('y [m]')
+ax[0].set_title("Z-component of magnetic field (coil)")
+ax[0].set_xlabel("x [m]")
+ax[0].set_ylabel("y [m]")
+ax[1].set_title("Eddy current distribution [A/m^2]")
+ax[1].set_xlabel("x [m]")
+ax[1].set_ylabel("y [m]")
 
 # add color bar
 fig.subplots_adjust(right=0.8)

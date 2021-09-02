@@ -28,7 +28,7 @@ DOI: 10.1109/TMAG.2019.2940204
 import os
 import sys
 import cmath
-from typing import Union
+from typing import Any, Union
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
@@ -130,8 +130,9 @@ def plot_coil(R: ArrayFloat, dl: ArrayFloat, ax: plt.Axes=None) -> plt.Axes:
     return ax
 
 
-def plot_mf(x: ArrayFloat, y: ArrayFloat, B: ArrayFloat,
-            label: str="z", levels: int=10, ax: plt.Axes=None) -> plt.Axes:
+
+def plot_mf(x: ArrayFloat, y: ArrayFloat, B: ArrayFloat, label: str="z",
+            levels: int=10, ax: plt.Axes=None) -> tuple[plt.Axes, Any]:
     """Plot magnetic field.
 
     Parameters
@@ -165,9 +166,9 @@ def plot_mf(x: ArrayFloat, y: ArrayFloat, B: ArrayFloat,
         B = np.linalg.norm(B, axis=1) if d == "norm" else B[:, d]
     if ax is None:
         _, ax = plt.subplots()
-    ax.contourf(x, y, vector2matrix(B, Ny, Nx), levels=levels)
+    cf = ax.contourf(x, y, vector2matrix(B, Ny, Nx), levels=levels)
     ax.set_aspect('equal', adjustable='box')
-    return ax
+    return ax, cf
 
 
 # ----------------------------------------------------------------------
@@ -410,9 +411,8 @@ def mask_bc(Nx: int, Ny: int) -> npt.NDArray[np.bool_]:
     return mask
 
 
-def plot_current_density_cf(x: ArrayFloat, y: ArrayFloat,
-                            Jx: ArrayCompl, Jy: ArrayCompl,
-                            d: str="mag", ax: plt.Axes=None) -> plt.Axes:
+def plot_current_density_cf(x: ArrayFloat, y: ArrayFloat, Jx: ArrayCompl, Jy: ArrayCompl,
+                            label: str="mag", ax: plt.Axes=None) -> tuple[plt.Axes, Any]:
     """Plot current density using contourf.
 
     Parameters
@@ -427,7 +427,7 @@ def plot_current_density_cf(x: ArrayFloat, y: ArrayFloat,
         Current density in x-direction.
     Jy : ndarray(dtype=float, dim=1)
         Current density in y-direction.
-    d : {'x', 'y', 'mag'}, defaults to 'mag'
+    label : {'x', 'y', 'mag'}, defaults to 'mag'
         Direction of current to plot.
     ax : matplotlib.axes, optional.
         Axes handle; if not provided, a new figure will be created.
@@ -444,20 +444,21 @@ def plot_current_density_cf(x: ArrayFloat, y: ArrayFloat,
     xc, yc = current_coordinates(x, y)
     if ax is None:
         _, ax = plt.subplots()
-    if d == "mag":
+    if label == "mag":
         J_mag = np.sqrt(np.real(Jx)**2 + np.real(Jy)**2)
-        ax.contourf(xc, yc, vector2matrix(J_mag, Nx-1, Ny-1), levels=10)
-    elif d == "x":
-        ax.contourf(xc, yc, vector2matrix(np.real(Jx), Nx-1, Ny-1), levels=10)
-    elif d == "y":
-        ax.contourf(xc, yc, vector2matrix(np.real(Jy), Nx-1, Ny-1), levels=10)
+        cf = ax.contourf(xc, yc, vector2matrix(J_mag, Nx-1, Ny-1), levels=10)
+    elif label == "x":
+        cf = ax.contourf(xc, yc, vector2matrix(np.real(Jx), Nx-1, Ny-1), levels=10)
+    elif label == "y":
+        cf = ax.contourf(xc, yc, vector2matrix(np.real(Jy), Nx-1, Ny-1), levels=10)
+    else:
+        cf = None
     ax.set_aspect("equal", adjustable="box")
-    return ax
+    return ax, cf
 
 
-def plot_current_density(x: ArrayFloat, y: ArrayFloat,
-                         Jx: ArrayCompl, Jy: ArrayCompl,
-                         d: str="mag", ax: plt.Axes=None) -> plt.Axes:
+def plot_current_density(x: ArrayFloat, y: ArrayFloat, Jx: ArrayCompl, Jy: ArrayCompl,
+                         label: str="mag", ax: plt.Axes=None) -> tuple[plt.Axes, Any]:
     """Plots current density using pcolormesh.
 
     Parameters
@@ -472,7 +473,7 @@ def plot_current_density(x: ArrayFloat, y: ArrayFloat,
         Current density in x-direction.
     Jy : ndarray(dtype=float, dim=1)
         Current density in y-direction.
-    d : {'x', 'y', 'mag'}, defaults to 'mag'
+    label : {'x', 'y', 'mag'}, defaults to 'mag'
         Direction of current to plot.
     ax : matplotlib.axes, optional.
         Axes handle; if not provided, a new figure will be created.
@@ -481,29 +482,29 @@ def plot_current_density(x: ArrayFloat, y: ArrayFloat,
     -------
     ax : matplotlib.axes
         Axes handle.
-    cs : matplotlib.contour.QuadContourSet
-        Contour set handle.
-
+    pc : matplotlib.collections.Quadmesh
+        Handle for colormesh.
 
     """
     Nx, Ny = len(x), len(y)
     X, Y = np.meshgrid(x, y)
     if ax is None:
         _, ax = plt.subplots()
-    if d == "mag":
+    if label == "mag":
         J_mag = np.sqrt(np.real(Jx)**2 + np.real(Jy)**2)
-        ax.pcolormesh(X, Y, vector2matrix(J_mag, Nx-1, Ny-1))
-    elif d == "x":
-        ax.pcolormesh(X, Y, vector2matrix(np.real(Jx), Nx-1, Ny-1))
-    elif d == "y":
-        ax.pcolormesh(X, Y, vector2matrix(np.real(Jy), Nx-1, Ny-1))
+        pc = ax.pcolormesh(X, Y, vector2matrix(J_mag, Nx-1, Ny-1))
+    elif label == "x":
+        pc = ax.pcolormesh(X, Y, vector2matrix(np.real(Jx), Nx-1, Ny-1))
+    elif label == "y":
+        pc = ax.pcolormesh(X, Y, vector2matrix(np.real(Jy), Nx-1, Ny-1))
+    else:
+        pc = None
     ax.set_aspect("equal", adjustable="box")
-    return ax
+    return ax, pc
 
 
-def plot_current_streamlines(x: ArrayFloat, y: ArrayFloat,
-                             Jx: ArrayCompl, Jy: ArrayCompl,
-                             ax: plt.Axes=None) -> plt.Axes:
+def plot_current_streamlines(x: ArrayFloat, y: ArrayFloat, Jx: ArrayCompl, Jy: ArrayCompl,
+                             ax: plt.Axes=None) -> tuple[plt.Axes, Any]:
     """Plot current streamlines.
 
     Parameters
@@ -533,12 +534,12 @@ def plot_current_streamlines(x: ArrayFloat, y: ArrayFloat,
     xc, yc = current_coordinates(x, y)
     if ax is None:
         _, ax = plt.subplots()
-    ax.streamplot(xc, yc,
+    sp = ax.streamplot(xc, yc,
                        vector2matrix(np.real(Jx), Nx-1, Ny-1),
                        vector2matrix(np.real(Jy), Nx-1, Ny-1),
                        density=0.6, linewidth=1, color='white')
     ax.set_aspect('equal', adjustable='box')
-    return ax
+    return ax, sp
 
 
 def contour_matrices(dx: float, dy: float, Nx: int, Ny:int,
@@ -873,16 +874,16 @@ def run_input_file(fn: str) -> None:
     # plot Z-component of coil magnetic field and eddy current distr.
     fig, ax = plt.subplots(nrows=1, ncols=2, squeeze=True, figsize=(12, 6))
     _, _ = plot_mf(X, Y, Bz, label='z', levels=10, ax=ax[0]) # type: ignore
-    _, cs_I = plot_current_density(X, Y, Jx, Jy, d='mag', ax=ax[1]) # type: ignore
-    _, _ = plot_current_streamlines(X, Y, Jx, Jy, ax=[1]) # type: ignore
+    _, cs_I = plot_current_density(X, Y, Jx, Jy, label="mag", ax=ax[1]) # type: ignore
+    _, _ = plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1]) # type: ignore
 
     # labels
-    ax[0].set_title('Z-component of magnetic field (coil)')
-    ax[0].set_xlabel('x [m]')
-    ax[0].set_ylabel('y [m]')
-    ax[1].set_title('Eddy current distribution [A/m^2]')
-    ax[1].set_xlabel('x [m]')
-    ax[1].set_ylabel('y [m]')
+    ax[0].set_title("Z-component of magnetic field (coil)")
+    ax[0].set_xlabel("x [m]")
+    ax[0].set_ylabel("y [m]")
+    ax[1].set_title("Eddy current distribution [A/m^2]")
+    ax[1].set_xlabel("x [m]")
+    ax[1].set_ylabel("y [m]")
 
     # add color bar
     fig.subplots_adjust(right=0.8)

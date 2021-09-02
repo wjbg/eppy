@@ -245,20 +245,20 @@ def coil_segments(points: ArrayFloat, esize: float,
     dl = np.empty((0, 3), float)
 
     lines = kw.get("lines") if 'lines' in kw else None
-    if lines != None:
+    if lines is not None:
         for line in lines:
             dR, ddl = line_segments(points[line[0]], points[line[1]], esize)
             R = np.vstack((R, dR))
             dl = np.vstack((dl, ddl))
     circles = kw.get("circles") if 'circles' in kw else None
-    if circles != None:
+    if circles is not None:
         for circle in circles:
             dR, ddl = circle_segments_3p(points[circle[0]], points[circle[1]],
                                          points[circle[2]], esize)
             R = np.vstack((R, dR))
             dl = np.vstack((dl, ddl))
     arcs = kw.get("arcs") if 'arcs' in kw else None
-    if arcs != None:
+    if arcs is not None:
         for arc in arcs:
             dR, ddl = circle_segments_3p(points[arc[0]], points[arc[1]],
                                          points[arc[2]], esize, is_arc=True)
@@ -470,33 +470,37 @@ def rotation_direction_and_angle(v1: ArrayFloat, v2: ArrayFloat,
         Angle between first and third vector in direction of rotation.
 
     """
+    V1 = v1/np.linalg.norm(v1)
+    V2 = v2/np.linalg.norm(v2)
+    V3 = v3/np.linalg.norm(v3)
+
     normal = np.array([0.0, 0.0, 0.0])
-    phi = np.arccos(np.dot(v1, v2))
-    theta = np.arccos(np.dot(v1, v3))
+    phi = np.arccos(np.dot(V1, V2))
+    theta = np.arccos(np.dot(V1, V3))
     if (phi < eps) or (theta < eps):
         raise ValueError("Circle points coincide.")
     if abs(phi-np.pi) < eps:  # v1 and v2 are aligned
         # print("v1 and v2 are aligned")
-        normal = -np.cross(v1, v3)
+        normal = -np.cross(V1, V3)
         theta = 2*np.pi - theta
     elif abs(theta-np.pi) < eps:  # v1 and v3 are aligned
         # print("v1 and v3 are aligned")
-        normal = np.cross(v1, v2)
+        normal = np.cross(V1, V2)
     else:  # v2 & v3 are not aligned with v1
         # print("vectors are not aligned")
-        N12 = np.cross(v1, v2)/np.linalg.norm(np.cross(v1, v2))
-        N13 = np.cross(v1, v3)/np.linalg.norm(np.cross(v1, v3))
+        N12 = np.cross(V1, V2)/np.linalg.norm(np.cross(V1, V2))
+        N13 = np.cross(V1, V3)/np.linalg.norm(np.cross(V1, V3))
         if np.linalg.norm(N12 - N13) < eps:  # v2 &  v3 lie in same circle half
             if theta - phi < eps:
                 raise ValueError("Circle points coincide.")
             elif theta > phi:
-                normal = np.cross(v1, v2)
+                normal = np.cross(V1, V2)
             elif phi > theta:
-                normal = -np.cross(v1, v2)
+                normal = -np.cross(V1, V2)
                 theta = 2*np.pi - theta
                 phi = 2*np.pi - phi
         else:
-            normal = np.cross(v1, v2)
+            normal = np.cross(V1, V2)
             theta = 2*np.pi-theta
     return normal, phi, theta
 

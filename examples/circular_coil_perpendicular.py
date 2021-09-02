@@ -122,17 +122,17 @@ print("Problem solved: {:.2f} seconds".format(solve_time-coil_time))
 
 # plot Z-component of coil magnetic field and eddy current distr.
 fig, ax = plt.subplots(nrows=1, ncols=2, squeeze=True, figsize=(12, 6))
-_, cs_b = eppy.plot_mf(X, Y, Bz, d='z', levels=10, ax=ax[0])
-_, cs_I = eppy.plot_current_density(X, Y, Jx, Jy, d='mag', ax=ax[1])
+_, cs_b = eppy.plot_mf(X, Y, Bz, label="z", levels=10, ax=ax[0])
+_, cs_I = eppy.plot_current_density(X, Y, Jx, Jy, label="mag", ax=ax[1])
 _, sp_I = eppy.plot_current_streamlines(X, Y, Jx, Jy, ax=ax[1])
 
 # labels
-ax[0].set_title('Z-component of magnetic field (coil)')
-ax[0].set_xlabel('x [m]')
-ax[0].set_ylabel('y [m]')
-ax[1].set_title('Eddy current distribution [A/m^2]')
-ax[1].set_xlabel('x [m]')
-ax[1].set_ylabel('y [m]')
+ax[0].set_title("Z-component of magnetic field (coil)")
+ax[0].set_xlabel("x [m]")
+ax[0].set_ylabel("y [m]")
+ax[1].set_title("Eddy current distribution [A/m^2]")
+ax[1].set_xlabel("x [m]")
+ax[1].set_ylabel("y [m]")
 
 # add color bar
 fig.subplots_adjust(right=0.8)

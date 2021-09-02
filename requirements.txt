@@ -6,6 +6,7 @@ cycler==0.10.0
 decorator==5.0.9
 docstring-to-markdown==0.9
 flake8==3.8.4
+imageio==2.9.0
 ipython==7.26.0
 ipython-genutils==0.2.0
 isort==5.9.3

@@ -88,14 +88,14 @@ Jx = eppy.phase_shift(Jx, np.pi/2)
 Jy = eppy.phase_shift(Jy, np.pi/2)
 
 # scale and shift dimensions and current to match figure in paper
-Xp = X*100 + 1
+Xp = X*100 + 1.0
 Yp = Y*100 + 0.5
 Jx = Jx/1E6
 Jy = Jy/1E6
 
 # plot
 fig, ax = plt.subplots(nrows=1, ncols=1, squeeze=True, figsize=(9, 5))
-_, pc = eppy.plot_current_density(Xp, Yp, Jx, Jy, d='mag', ax=ax)
+_, pc = eppy.plot_current_density(Xp, Yp, Jx, Jy, label='mag', ax=ax)
 _, sp = eppy.plot_current_streamlines(Xp, Yp, Jx, Jy, ax=ax)
 
 # labels
